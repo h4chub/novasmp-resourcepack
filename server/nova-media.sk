@@ -1,0 +1,91 @@
+# Nova SMP — Media rank (approved content creators).
+# The rank is the LuckPerms group "media" (weight 30: below every staff rank, above Nova/Star/Member).
+# Its prefix is the pink camera icon (a resource-pack glyph) followed by the player's name; no "MEDIA" text.
+#
+# Only players with the permission nova.media.manage (Chroma) and the console can use /media. It can ONLY add or
+# remove the media group; it never touches any other rank, permission or player data.
+#   /media add <player>     give Media (shows instantly for Members, Star and Nova; staff keep their staff prefix)
+#   /media remove <player>  take Media away (any other rank stays)
+#   /media list             everyone who has Media (online players are checked live in LuckPerms)
+# Typing "/media " suggests add / remove / list (native Minecraft command suggestions); player names are suggested too.
+
+command /media (add|remove|list) [<text>]:
+    permission: nova.media.manage
+    suggestions:
+        set suggestions of arg-1 to names of all players
+    trigger:
+        set {_c} to choice argument
+        if {_c} is "list":
+            nova_media_sync()
+            set {_n} to 0
+            set {_on} to ""
+            set {_off} to ""
+            loop {nova::media::*}:
+                add 1 to {_n}
+                set {_pl} to player(loop-value, true)
+                if {_pl} is set:
+                    set {_on} to "%{_on}%&a%loop-value% "
+                else:
+                    set {_off} to "%{_off}%&7%loop-value% "
+            send "&d[Media] &7%{_n}% Media player(s): %{_on}%%{_off}%" to sender
+            if {_n} is 0:
+                send "&7Nobody has Media yet. Give it with &f/media add <player>&7." to sender
+            stop
+        if arg-1 is not set:
+            send "&d[Media] &7/media %{_c}% <player>" to sender
+            stop
+        # only accounts that have joined NovaSMP (no web lookups); Bedrock names start with a dot
+        set {_p} to offlineplayer(arg-1, false)
+        if {_p} is not set:
+            send "&c%arg-1% has never joined NovaSMP. Check the exact name (Bedrock names start with a dot)." to sender
+            stop
+        if {_p} has not played before:
+            {_p} is not online
+            send "&c%arg-1% has never joined NovaSMP. Check the exact name (Bedrock names start with a dot)." to sender
+            stop
+        set {_u} to "%uuid of {_p}%"
+        if {_c} is "add":
+            make console execute command "lp user %{_u}% parent add media"
+            set {nova::media::%{_u}%} to name of {_p}
+            log "ADD %name of {_p}% (%{_u}%) by %name of sender%" to "media-rank.log"
+            send "&d[Media] &f%name of {_p}% &7now has the Media rank." to sender
+            if {_p} is online:
+                send "&dYou received the Media rank on NovaSMP. Thanks for creating content!" to {_p}
+                wait 1 second
+                if {_p} is online:
+                    set {_g} to group of {_p}
+                    if "%{_g}%" is "media":
+                        send "&d[Media] &f%name of {_p}% &7now shows the pink camera in chat, TAB and nametags." to sender
+                    else:
+                        send "&d[Media] &f%name of {_p}% &7keeps their &f%{_g}% &7prefix because it ranks above Media (staff). Media is still saved." to sender
+            else:
+                send "&7It shows when they join (Members, Star and Nova show the camera; staff keep their staff prefix)." to sender
+        else:
+            make console execute command "lp user %{_u}% parent remove media"
+            delete {nova::media::%{_u}%}
+            log "REMOVE %name of {_p}% (%{_u}%) by %name of sender%" to "media-rank.log"
+            send "&d[Media] &f%name of {_p}% &7no longer has the Media rank." to sender
+
+# Keep the list in step with LuckPerms, also when Media was given or removed with /lp directly.
+function nova_media_sync():
+    loop all players:
+        nova_media_check(loop-player)
+
+# LuckPerms reports group display names to Vault ("Media"), so compare without caring about case.
+function nova_media_has(p: player) :: boolean:
+    loop groups of {_p}:
+        if loop-value is "media":
+            return true
+    return false
+
+function nova_media_check(p: player):
+    set {_u} to "%uuid of {_p}%"
+    if nova_media_has({_p}) is true:
+        set {nova::media::%{_u}%} to name of {_p}
+    else if {nova::media::%{_u}%} is set:
+        delete {nova::media::%{_u}%}
+
+on join:
+    wait 3 seconds
+    player is online
+    nova_media_check(player)
