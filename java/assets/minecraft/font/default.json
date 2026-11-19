@@ -1,0 +1,13 @@
+{
+  "providers": [
+    {
+      "type": "bitmap",
+      "file": "novasmp:font/media_camera.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": [
+        "⬤"
+      ]
+    }
+  ]
+}

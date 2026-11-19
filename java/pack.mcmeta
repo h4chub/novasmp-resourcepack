@@ -1,0 +1,12 @@
+{
+  "pack": {
+    "pack_format": 88,
+    "supported_formats": [
+      34,
+      88
+    ],
+    "min_format": 34,
+    "max_format": 88,
+    "description": "NovaSMP: Media rank icon"
+  }
+}
