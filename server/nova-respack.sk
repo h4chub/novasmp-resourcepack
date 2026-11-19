@@ -1,0 +1,66 @@
+# Nova SMP — optional resource pack (Media rank camera icon), offered to Java players after they log in.
+# With the pack, the Media prefix glyph renders as the pink camera. Declining is allowed (nobody is kicked);
+# players without the pack see a plain white circle in that spot instead of a broken character.
+# Bedrock players (Geyser) get the camera from Geyser's own Bedrock pack instead, so they are skipped here.
+# AuthMe runs "novapackoffer <player>" as console after every successful login (plugins/AuthMe/commands.yml).
+# Every client answer (accepted / downloaded / successfully loaded / declined / failed ...) is written to
+# plugins/Skript/logs/resource-pack.log and kept per player in {nova::pack::<uuid>}.
+
+options:
+    url: https://github.com/h4chub/novasmp-resourcepack/releases/download/v1.0.0/NovaSMP-resourcepack.zip
+    sha1: 345b1c0dc34ddeb68e6e915394f0566d368bf728
+
+command /novapackoffer <text>:
+    executable by: console
+    trigger:
+        loop all players:
+            name of loop-player is arg-1
+            set {_p} to loop-player
+        {_p} is set
+        name of {_p} does not start with "."
+        "%uuid of {_p}%" does not start with "00000000-0000-0000-"
+        wait 2 seconds
+        {_p} is online
+        send the resource pack from the URL "{@url}" with hash "{@sha1}" to {_p}
+
+# Any Java player can (re)load the pack at any time, e.g. after declining it.
+command /novapack:
+    aliases: /mediapack
+    executable by: players
+    trigger:
+        if name of player starts with ".":
+            send "&7Bedrock players get the Media icon automatically." to player
+            stop
+        send "&7Sending the NovaSMP resource pack (Media rank icon)..." to player
+        send the resource pack from the URL "{@url}" with hash "{@sha1}" to player
+
+# Staff / console: last resource pack answer of a player.
+command /novapackstatus <offlineplayer>:
+    permission: nova.pack.status
+    trigger:
+        set {_s} to {nova::pack::%uuid of arg-1%}
+        if {_s} is not set:
+            set {_s} to "no answer recorded"
+        send "[Pack] %arg-1%: %{_s}% (%{nova::packtime::%uuid of arg-1%}%)" to sender
+
+on resource pack request accepted:
+    nova_pack_log(player, "accepted")
+on resource pack request downloaded:
+    nova_pack_log(player, "downloaded")
+on resource pack request successfully loaded:
+    nova_pack_log(player, "successfully loaded")
+on resource pack request declined:
+    nova_pack_log(player, "declined")
+on resource pack request failed to download:
+    nova_pack_log(player, "failed to download")
+on resource pack request invalid url:
+    nova_pack_log(player, "invalid url")
+on resource pack request failed to reload:
+    nova_pack_log(player, "failed to reload")
+on resource pack request discarded:
+    nova_pack_log(player, "discarded")
+
+function nova_pack_log(p: player, s: text):
+    set {nova::pack::%uuid of {_p}%} to {_s}
+    set {nova::packtime::%uuid of {_p}%} to now
+    log "%{_p}% (%uuid of {_p}%) %{_s}%" to "resource-pack.log"
