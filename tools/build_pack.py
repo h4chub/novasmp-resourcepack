@@ -81,12 +81,15 @@ print('java', jpath, 'sha1', hashlib.sha1(jbuf.getvalue()).hexdigest(), 'sha256'
 # ---------------- Bedrock pack (Geyser)
 CELL = 32
 sheet = Image.new('RGBA', (CELL * 16, CELL * 16), (0, 0, 0, 0))
-g = fit(icon, CELL - 4)
+# Fit INSIDE one 32x32 cell (width is the limiting side for this wide camera) so nothing spills into the neighbouring
+# cell (U+2B25) and the camera's right edge is not clipped. Aspect ratio unchanged.
+iw, ih = icon.size; bw = CELL; bh = CELL - 4
+sc = min(bw / iw, bh / ih); g = icon.convert('RGBa').resize((max(1, round(iw * sc)), max(1, round(ih * sc))), Image.LANCZOS).convert('RGBA')
 row, col = (CP & 0xFF) >> 4, CP & 0x0F
-sheet.paste(g, (col * CELL + 0, row * CELL + (CELL - g.size[1]) - 2), g)
+sheet.paste(g, (col * CELL + (CELL - g.size[0]) // 2, row * CELL + (CELL - g.size[1]) // 2 + 1), g)
 manifest = {"format_version": 2, "header": {"name": "NovaSMP Media icon", "description": "NovaSMP rank icons", "uuid": str(uuid.uuid5(uuid.NAMESPACE_DNS, 'novasmp.pro/bedrock-pack/header')),
-            "version": [1, 0, 0], "min_engine_version": [1, 20, 0]},
-            "modules": [{"type": "resources", "uuid": str(uuid.uuid5(uuid.NAMESPACE_DNS, 'novasmp.pro/bedrock-pack/module')), "version": [1, 0, 0]}]}
+            "version": [1, 0, 1], "min_engine_version": [1, 20, 0]},
+            "modules": [{"type": "resources", "uuid": str(uuid.uuid5(uuid.NAMESPACE_DNS, 'novasmp.pro/bedrock-pack/module')), "version": [1, 0, 1]}]}
 bbuf = io.BytesIO()
 with zipfile.ZipFile(bbuf, 'w', zipfile.ZIP_DEFLATED) as z:
     z.writestr('manifest.json', json.dumps(manifest, indent=2))
