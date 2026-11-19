@@ -11,6 +11,7 @@ import sys, os, json, uuid, zipfile, hashlib, io
 from PIL import Image
 
 CP = 0x2B24
+CLEAR_WINDOW = True
 src, out = sys.argv[1], sys.argv[2]
 os.makedirs(out, exist_ok=True)
 def white_to_alpha(img):
@@ -28,6 +29,10 @@ def white_to_alpha(img):
     for y in range(H):
         for x in (0, W - 1):
             if light(x, y) and not bg[y][x]: bg[y][x] = True; q.append((x, y))
+    if CLEAR_WINDOW:   # owner's choice: the white window inside the camera is background too (see-through), not part of the icon
+        for y in range(H):
+            for x in range(W):
+                if light(x, y) and not bg[y][x]: bg[y][x] = True; q.append((x, y))
     while q:
         x, y = q.popleft()
         for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
@@ -88,8 +93,8 @@ sc = min(bw / iw, bh / ih); g = icon.convert('RGBa').resize((max(1, round(iw * s
 row, col = (CP & 0xFF) >> 4, CP & 0x0F
 sheet.paste(g, (col * CELL + (CELL - g.size[0]) // 2, row * CELL + (CELL - g.size[1]) // 2 + 1), g)
 manifest = {"format_version": 2, "header": {"name": "NovaSMP Media icon", "description": "NovaSMP rank icons", "uuid": str(uuid.uuid5(uuid.NAMESPACE_DNS, 'novasmp.pro/bedrock-pack/header')),
-            "version": [1, 0, 1], "min_engine_version": [1, 20, 0]},
-            "modules": [{"type": "resources", "uuid": str(uuid.uuid5(uuid.NAMESPACE_DNS, 'novasmp.pro/bedrock-pack/module')), "version": [1, 0, 1]}]}
+            "version": [1, 1, 0], "min_engine_version": [1, 20, 0]},
+            "modules": [{"type": "resources", "uuid": str(uuid.uuid5(uuid.NAMESPACE_DNS, 'novasmp.pro/bedrock-pack/module')), "version": [1, 1, 0]}]}
 bbuf = io.BytesIO()
 with zipfile.ZipFile(bbuf, 'w', zipfile.ZIP_DEFLATED) as z:
     z.writestr('manifest.json', json.dumps(manifest, indent=2))
